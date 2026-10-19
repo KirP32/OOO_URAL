@@ -1,4 +1,4 @@
-import { AlertCircle, RotateCcw, SearchX } from 'lucide-react';
+import { AlertCircle, RotateCcw } from 'lucide-react';
 
 export function Loader({ children }) {
   return (
@@ -22,7 +22,6 @@ export function ErrorState({ message, onRetry }) {
 export function EmptyState({ title, children }) {
   return (
     <div className="empty-state" role="status">
-      <span className="empty-icon"><SearchX size={28} aria-hidden="true" /></span>
       <h3>{title}</h3>
       <p>{children}</p>
     </div>

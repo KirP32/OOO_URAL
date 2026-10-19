@@ -24,13 +24,38 @@ async function search(user, number = '7160500039S') {
 }
 
 describe('Two-stage parts search', () => {
+  it.each(['click', 'enter'])('guides the user to the key without searching via %s', async (method) => {
+    const fetch = vi.fn().mockResolvedValue(response({ goods: [product] }));
+    vi.stubGlobal('fetch', fetch);
+    const { user } = renderApp();
+    await user.type(screen.getByRole('textbox', { name: 'Артикул запчасти' }), '123');
+    vi.useFakeTimers();
+    await act(async () => vi.advanceTimersByTimeAsync(500));
+    vi.useRealTimers();
+    expect(fetch).not.toHaveBeenCalled();
+    if (method === 'click') await user.click(screen.getByRole('button', { name: 'Найти' }));
+    else await user.keyboard('{Enter}');
+    const keyInput = screen.getByLabelText('API-ключ покупателя');
+    expect(keyInput).toHaveFocus();
+    expect(keyInput).toHaveAttribute('aria-invalid', 'true');
+    expect(keyInput).toHaveAccessibleDescription('Добавьте API-ключ, чтобы начать поиск.');
+    expect(screen.getByRole('alert')).toHaveTextContent('Добавьте API-ключ');
+    expect(fetch).not.toHaveBeenCalled();
+    await connect(user);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Выбрать производителя MEYLE' })).toBeVisible();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('button', { name: 'Отключить' }));
+    expect(screen.getByLabelText('API-ключ покупателя')).not.toHaveAttribute('aria-invalid');
+  });
+
   it('requires a personal key and never stores it in browser storage', async () => {
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     const localWrite = vi.spyOn(Storage.prototype, 'setItem');
     const { user } = renderApp();
     await user.type(screen.getByRole('textbox', { name: 'Артикул запчасти' }), '123');
-    expect(screen.getByRole('button', { name: 'Найти' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Найти' })).toBeEnabled();
     expect(fetch).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Очистить артикул' }));
     await connect(user);
@@ -172,7 +197,7 @@ describe('Two-stage parts search', () => {
     await act(async () => pending.resolve(response({ goods: [product] })));
     expect(fetch.mock.calls[0][1].signal.aborted).toBe(true);
     expect(screen.queryByRole('button', { name: 'Выбрать производителя MEYLE' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Найти' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Найти' })).toBeEnabled();
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
   });
 });
